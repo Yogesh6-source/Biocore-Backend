@@ -10,9 +10,32 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+const configuredOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const localOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173'
+];
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  ...(process.env.NODE_ENV !== 'production' ? localOrigins : [])
+]);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.size === 0 || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  }
+}));
 app.use(express.json());
 
 // Routes
@@ -44,11 +67,16 @@ app.post('/api/notify', async (req, res) => {
     results.email = await sendReportEmail(patientEmail, patientName, testType, reportUrl);
     debugLog(`Email result: ${JSON.stringify(results.email)}`);
 
-    res.json({ 
-      success: results.email.success, 
-      message: results.email.success ? 'Email sent successfully' : 'Email failed to send', 
-      results 
-    });
+    if (!results.email.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Email failed to send',
+        error: results.email.error?.message || 'Unknown error',
+        results
+      });
+    }
+
+    res.json({ success: true, message: 'Email sent successfully', results });
   } catch (error) {
     debugLog(`CRITICAL ERROR in /api/notify: ${error.message}\n${error.stack}`);
     res.status(500).json({ error: 'Internal server error while sending notifications' });

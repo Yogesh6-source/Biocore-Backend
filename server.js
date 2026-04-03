@@ -14,6 +14,17 @@ const configuredOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const firebaseAliases = configuredOrigins.flatMap((origin) => {
+  if (origin.endsWith('.web.app')) {
+    return [origin, origin.replace('.web.app', '.firebaseapp.com')];
+  }
+
+  if (origin.endsWith('.firebaseapp.com')) {
+    return [origin, origin.replace('.firebaseapp.com', '.web.app')];
+  }
+
+  return [origin];
+});
 const localOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -21,7 +32,7 @@ const localOrigins = [
   'http://127.0.0.1:4173'
 ];
 const allowedOrigins = new Set([
-  ...configuredOrigins,
+  ...firebaseAliases,
   ...(process.env.NODE_ENV !== 'production' ? localOrigins : [])
 ]);
 

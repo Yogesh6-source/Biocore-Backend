@@ -51,7 +51,7 @@ app.use(express.json());
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'BioCore Pathology API is running' });
+  res.json({ status: 'ok', message: 'BioCore Pathology API is running', version: 'gmail-main-2026-04-03-01' });
 });
 
 const logFile = path.join(process.cwd(), 'notification_debug.log');
